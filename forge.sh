@@ -59,10 +59,9 @@ composer create-project nunomaduro/laravel-starter-kit qfoundry_tmp --prefer-dis
 cp -r --update=none qfoundry_tmp/{*,.*} . || true
 rm -rf qfoundry_tmp
 
-# --- Stage 3: The 18-Skill Infusion (Iterative Recovery) ---
+# --- Stage 3: The 18-Skill Infusion (Syntax Corrected) ---
 echo -e "\n${BLUE}[3/8] Executing Iterative Dependency Infusion...${NC}"
 
-# Define our "God-Tier" package list
 PACKAGES=(
     "prism-php/prism:^0.99"
     "moe-mizrak/laravel-openrouter:^2.0"
@@ -82,19 +81,29 @@ DEV_PACKAGES=(
     "mrmarchone/laravel-auto-crud:^1.0"
 )
 
-# Function to install with grace
+# Function to install with proper flag handling
 install_pkg() {
-    echo -e "${YELLOW}[*] Infusing $1...${NC}"
-    # We use --ignore-platform-reqs to bypass extension checks during the forge
-    if ! composer require "$1" -W --ignore-platform-reqs --quiet; then
-        echo -e "${RED}[!] Conflict detected for $1. Skipping for manual override...${NC}"
+    local pkg=$1
+    local is_dev=$2
+    
+    echo -e "${YELLOW}[*] Infusing $pkg...${NC}"
+    
+    if [[ "$is_dev" == "true" ]]; then
+        composer require "$pkg" --dev -W --ignore-platform-reqs --quiet
     else
-        echo -e "${GREEN}[+] $1 Integrated.${NC}"
+        composer require "$pkg" -W --ignore-platform-reqs --quiet
+    fi
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}[+] $pkg Integrated.${NC}"
+    else
+        echo -e "${RED}[!] Hard Conflict detected for $pkg.${NC}"
     fi
 }
 
-for pkg in "${PACKAGES[@]}"; do install_pkg "$pkg"; done
-for pkg in "${DEV_PACKAGES[@]}"; do install_pkg "$pkg --dev"; done
+# Run the loops with the new signature
+for pkg in "${PACKAGES[@]}"; do install_pkg "$pkg" "false"; done
+for pkg in "${DEV_PACKAGES[@]}"; do install_pkg "$pkg" "true"; done
 # --- Stage 4: Directory Architecture ---
 mkdir -p app/Foundry/{Agents,Cognition,Skills} resources/prompts bin
 
