@@ -56,38 +56,45 @@ fi
 echo -e "${BLUE}[2/8] Creating Type-Safe Skeleton...${NC}"
 rm -rf qfoundry_tmp
 composer create-project nunomaduro/laravel-starter-kit qfoundry_tmp --prefer-dist --quiet
-# Fix: Using --update=none for portability
 cp -r --update=none qfoundry_tmp/{*,.*} . || true
 rm -rf qfoundry_tmp
 
-# --- Stage 3: The 18-Skill Infusion (The "Force" Version) ---
-echo -e "${BLUE}[3/8] Executing Resilient Dependency Infusion...${NC}"
+# --- Stage 3: The 18-Skill Infusion (Iterative Recovery) ---
+echo -e "\n${BLUE}[3/8] Executing Iterative Dependency Infusion...${NC}"
 
-# 1. Update the base project first to ensure we have the latest compatible framework versions
-composer update --quiet
+# Define our "God-Tier" package list
+PACKAGES=(
+    "prism-php/prism:^0.99"
+    "moe-mizrak/laravel-openrouter:^2.0"
+    "hosseinhezami/laravel-gemini:^1.0"
+    "neuron-core/neuron-laravel:^0.3"
+    "b7s/fluentvox:^1.0"
+    "soloterm/solo:^0.5"
+    "whispphp/whisp:^2.0"
+    "chimit/prompt:^1.0"
+    "mischasigtermans/laravel-toon:^1.0"
+)
 
-# 2. Install AI & Multimodal components with a broader solver range
-# We use -W (with-all-dependencies) and allow for a bit of flex to let the kits merge
-echo -e "${YELLOW}[*] Forcing AI & Sensory Layer Convergence...${NC}"
-composer require \
-    prism-php/prism:^0.99 \
-    moe-mizrak/laravel-openrouter:^2.0 \
-    hosseinhezami/laravel-gemini:^1.0 \
-    neuron-core/neuron-laravel:^0.3 \
-    b7s/fluentvox:^1.0 \
-    soloterm/solo:^0.5 \
-    whispphp/whisp:^2.0 \
-    chimit/prompt:^1.0 \
-    mischasigtermans/laravel-toon:^1.0 \
-    --with-all-dependencies --quiet
+DEV_PACKAGES=(
+    "rector/rector:^2.0"
+    "web-id/laravel-playwright:^1.0"
+    "tyghaykal/laravel-seed-generator:^2.2"
+    "mrmarchone/laravel-auto-crud:^1.0"
+)
 
-echo -e "${YELLOW}[*] Adding Development Guards...${NC}"
-composer require --dev \
-    rector/rector:^2.0 \
-    web-id/laravel-playwright:^1.0 \
-    tyghaykal/laravel-seed-generator:^2.2 \
-    mrmarchone/laravel-auto-crud:^1.0 \
-    --with-all-dependencies --quiet
+# Function to install with grace
+install_pkg() {
+    echo -e "${YELLOW}[*] Infusing $1...${NC}"
+    # We use --ignore-platform-reqs to bypass extension checks during the forge
+    if ! composer require "$1" -W --ignore-platform-reqs --quiet; then
+        echo -e "${RED}[!] Conflict detected for $1. Skipping for manual override...${NC}"
+    else
+        echo -e "${GREEN}[+] $1 Integrated.${NC}"
+    fi
+}
+
+for pkg in "${PACKAGES[@]}"; do install_pkg "$pkg"; done
+for pkg in "${DEV_PACKAGES[@]}"; do install_pkg "$pkg --dev"; done
 # --- Stage 4: Directory Architecture ---
 mkdir -p app/Foundry/{Agents,Cognition,Skills} resources/prompts bin
 
