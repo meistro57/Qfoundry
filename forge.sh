@@ -23,15 +23,20 @@ if [[ $EUID -ne 0 ]]; then
    sudo -v
 fi
 
-# --- Stage 1: Zero-State Environment ---
+# --- Stage 1: Zero-State Environment (Fixed) ---
 draw_header
 echo -e "${BLUE}[1/8] Tempering PHP 8.4 & System Deps...${NC}"
 
 sudo apt-get update -y && sudo apt-get install -y software-properties-common
 sudo add-apt-repository ppa:ondrej/php -y
 sudo apt-get update -y
-sudo apt-get install -y php8.4 php8.4-cli php8.4-{curl,mbstring,xml,bcmath,sqlite3,zip,intl,pcntl} \
-                        python3-venv libffi-dev libsodium-dev unzip git curl
+
+# Removed php8.4-pcntl (it's built into php8.4-cli)
+sudo apt-get install -y php8.4 php8.4-cli php8.4-common php8.4-curl \
+                        php8.4-mbstring php8.4-xml php8.4-bcmath \
+                        php8.4-sqlite3 php8.4-zip php8.4-intl \
+                        php8.4-readline python3-venv libffi-dev \
+                        libsodium-dev unzip git curl
 
 # Install Bun (Required for Nuno's Kit 2026)
 if ! command -v bun &> /dev/null; then
