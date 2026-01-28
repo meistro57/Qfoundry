@@ -1,7 +1,7 @@
 ## 2. `ROADMAP.md`
 This is the strategic vision. It shows that while the seed is powerful, the forest is still growing.
 
-```markdown
+
 # 🗺 Qfoundry Strategic Roadmap
 
 The path from a single script to a self-evolving intelligence.
@@ -30,5 +30,5 @@ The path from a single script to a self-evolving intelligence.
 - [ ] **Self-Optimizing Code:** Agents that use Rector to refactor themselves based on performance logs.
 - [ ] **Qfoundry Cloud:** Instant deployment of the Forge to specialized AI-optimized servers.
 
----
+
 *Follow the forge. The empire is only one `bash` command away.*
