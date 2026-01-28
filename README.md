@@ -9,4 +9,4 @@ Qfoundry is not a boilerplate. It is a self-assembling foundry that forges a hig
 Stop cloning bloat. Start with the seed.
 
 ```bash
-curl -s [https://raw.githubusercontent.com/your-username/qfoundry/main/forge.sh](https://raw.githubusercontent.com/your-username/qfoundry/main/forge.sh) | bash
+curl -s [https://raw.githubusercontent.com/meistro57/qfoundry/main/forge.sh](https://raw.githubusercontent.com/meistro57/qfoundry/main/forge.sh) | bash
