@@ -66,6 +66,15 @@ detect_gpu() {
     return 1
 }
 
+PACKAGE_DISCOVERED=false
+
+ensure_package_discovered() {
+    if [[ -f artisan && "$PACKAGE_DISCOVERED" == "false" ]]; then
+        php artisan package:discover --quiet || true
+        PACKAGE_DISCOVERED=true
+    fi
+}
+
 record_path() {
     local path=$1
     echo "$path" >> "$FORGE_MANIFEST"
@@ -270,6 +279,7 @@ if [[ $INSTALL_OPENROUTER == true ]]; then
     echo -e "${BLUE}[+] Infusing OpenRouter...${NC}"
     install_pkg "moe-mizrak/laravel-openrouter" "false"
     if [[ -f artisan ]]; then
+        ensure_package_discovered
         php artisan vendor:publish --provider="MoeMizrak\\LaravelOpenRouter\\LaravelOpenRouterServiceProvider"
     fi
 fi
@@ -277,6 +287,7 @@ if [[ $INSTALL_GEMINI == true ]]; then
     echo -e "${BLUE}[+] Infusing Gemini Multimodal...${NC}"
     install_pkg "hosseinhezami/laravel-gemini" "false"
     if [[ -f artisan ]]; then
+        ensure_package_discovered
         php artisan vendor:publish --tag=gemini-config
     fi
 fi
@@ -304,13 +315,18 @@ if [[ $INSTALL_PYTORCH == true ]] || detect_gpu; then
 fi
 if [[ $INSTALL_SOLO == true ]]; then
     echo -e "${YELLOW}[+] Forging Solo...${NC}"
-    install_pkg "soloterm/solo:^0.5" "false"
-    if php artisan list 2>/dev/null | grep -q "solo:install"; then
+    if ! php -m | rg -qi "^pcntl$|^posix$"; then
+        echo -e "${YELLOW}[-] Solo requires ext-pcntl and ext-posix. Skipping.${NC}"
+    else
+        install_pkg "soloterm/solo:^0.5" "true"
+        ensure_package_discovered
+        if php artisan list 2>/dev/null | grep -q "solo:install"; then
         php artisan solo:install --quiet || {
             echo -e "${YELLOW}[-] solo:install failed. Skipping.${NC}"
         }
     else
         echo -e "${YELLOW}[-] solo:install not available. Skipping install step.${NC}"
+    fi
     fi
 fi
 if [[ $INSTALL_WHISP == true ]]; then
@@ -341,6 +357,7 @@ if [[ $INSTALL_AUTOCRUD == true ]]; then
     echo -e "${GREEN}[+] Adding Auto-CRUD...${NC}"
     install_pkg "mrmarchone/laravel-auto-crud" "false"
     if [[ -f artisan ]]; then
+        ensure_package_discovered
         if php artisan list 2>/dev/null | grep -q "auto-crud:install"; then
             php artisan auto-crud:install || {
                 echo -e "${YELLOW}[-] auto-crud:install failed. Skipping.${NC}"
@@ -354,6 +371,7 @@ if [[ $INSTALL_SEEDER_GENERATOR == true ]]; then
     echo -e "${GREEN}[+] Adding Seeder Generator...${NC}"
     install_pkg "tyghaykal/laravel-seed-generator" "false"
     if [[ -f artisan ]]; then
+        ensure_package_discovered
         php artisan vendor:publish --tag=seed-generator-config
     fi
 fi
@@ -361,6 +379,7 @@ if [[ $INSTALL_CHIMIT_PROMPT == true ]]; then
     echo -e "${GREEN}[+] Adding Chimit/Prompt...${NC}"
     install_pkg "chimit/prompt" "false"
     if [[ -f artisan ]]; then
+        ensure_package_discovered
         if php artisan list 2>/dev/null | rg -q "prompt:install"; then
             php artisan prompt:install || {
                 echo -e "${YELLOW}[-] prompt:install failed. Skipping.${NC}"
@@ -376,6 +395,7 @@ if [[ $INSTALL_CREDITS == true ]]; then
         echo -e "${YELLOW}[-] climactic/credits not found on Packagist. Skipping.${NC}"
     else
         if [[ -f artisan ]]; then
+            ensure_package_discovered
             if php artisan list 2>/dev/null | rg -q "vendor:publish"; then
                 php artisan vendor:publish --tag="credits-migrations" || true
                 php artisan vendor:publish --tag="credits-config" || true
@@ -388,6 +408,7 @@ if [[ $INSTALL_HYDEPHP == true ]]; then
     echo -e "${GREEN}[+] Adding HydePHP...${NC}"
     install_pkg "hyde/framework" "false"
     if [[ -f artisan ]]; then
+        ensure_package_discovered
         if php artisan list 2>/dev/null | rg -q "hyde:publish-configs"; then
             php artisan hyde:publish-configs || {
                 echo -e "${YELLOW}[-] hyde:publish-configs failed. Skipping.${NC}"
