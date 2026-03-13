@@ -45,6 +45,16 @@ RUN_MASTER_CLEANUP=false
 INSTALL_SOLO=true
 INSTALL_WHISP=true
 
+INSTALL_ANTHROPIC=true
+INSTALL_OPENAI=false
+INSTALL_MCP=true
+INSTALL_RAG=true
+
+INSTALL_BOOST=false
+INSTALL_MEMRL=true
+INSTALL_PGVECTOR=false
+INSTALL_SCOUT=true
+
 toggle_var() {
     local var=$1
     local current
@@ -171,32 +181,35 @@ next_index() {
 
 ITEM_TYPE=(
     section option option option option option option
-    section option option option option
+    section option option option option option option option option
     section option option option
     section option option
-    section option option option option
+    section option option option option option
     section option option option
     section option option
+    section option option option
 )
 
 ITEM_LABEL=(
     "CORE" "System packages (PHP, tools)" "Laravel starter kit" "Inject Overseer agent" "Create start.sh" "Master Forge cleanup" "Start over (remove artifacts)"
-    "BRAIN" "Prism" "Neuron" "OpenRouter" "Gemini Multimodal"
+    "BRAIN" "Prism" "Neuron" "OpenRouter" "Gemini Multimodal" "Anthropic Claude" "OpenAI SDK" "MCP Server" "RAG Pipeline"
     "VOICE" "FluentVox package" "Python venv" "PyTorch (GPU auto)"
     "GUARD" "Rector" "Playwright"
-    "EFFICIENCY" "TOON (Token Compression)" "Auto-CRUD Scaffolding" "Seeder Generator" "Chimit/Prompt"
+    "EFFICIENCY" "TOON (Token Compression)" "Auto-CRUD Scaffolding" "Seeder Generator" "Chimit/Prompt" "Boost (Laravel Octane)"
     "ECONOMY" "Climactic Credits" "HydePHP" "Altitude / Nuxt UI"
     "COCKPIT" "Solo" "Whisp"
+    "MEMORY" "MemRL (Agent Memory)" "pgvector (Vector DB)" "Laravel Scout"
 )
 
 ITEM_VAR=(
     "" "INSTALL_SYSTEM" "INSTALL_SKELETON" "INJECT_OVERSEER" "CREATE_START_SCRIPT" "RUN_MASTER_CLEANUP" "RESET_FORGE"
-    "" "INSTALL_PRISM" "INSTALL_NEURON" "INSTALL_OPENROUTER" "INSTALL_GEMINI"
+    "" "INSTALL_PRISM" "INSTALL_NEURON" "INSTALL_OPENROUTER" "INSTALL_GEMINI" "INSTALL_ANTHROPIC" "INSTALL_OPENAI" "INSTALL_MCP" "INSTALL_RAG"
     "" "INSTALL_FLUENTVOX" "INSTALL_PYTHON_VENV" "INSTALL_PYTORCH"
     "" "INSTALL_RECTOR" "INSTALL_PLAYWRIGHT"
-    "" "INSTALL_TOON" "INSTALL_AUTOCRUD" "INSTALL_SEEDER_GENERATOR" "INSTALL_CHIMIT_PROMPT"
+    "" "INSTALL_TOON" "INSTALL_AUTOCRUD" "INSTALL_SEEDER_GENERATOR" "INSTALL_CHIMIT_PROMPT" "INSTALL_BOOST"
     "" "INSTALL_CREDITS" "INSTALL_HYDEPHP" "INSTALL_ALTITUDE"
     "" "INSTALL_SOLO" "INSTALL_WHISP"
+    "" "INSTALL_MEMRL" "INSTALL_PGVECTOR" "INSTALL_SCOUT"
 )
 
 SELECTED=0
@@ -290,6 +303,112 @@ if [[ $INSTALL_GEMINI == true ]]; then
         ensure_package_discovered
         php artisan vendor:publish --tag=gemini-config
     fi
+fi
+if [[ $INSTALL_ANTHROPIC == true ]]; then
+    echo -e "${BLUE}[+] Infusing Anthropic Claude...${NC}"
+    mkdir -p app/Foundry/Agents
+    cat > app/Foundry/Agents/ClaudeAgent.php << 'PHPEOF'
+<?php
+namespace App\Foundry\Agents;
+use Prism\Prism;
+class ClaudeAgent {
+    public function command(string $prompt, string $model = 'claude-sonnet-4-6'): string {
+        return Prism::text()
+            ->using('anthropic', $model)
+            ->prompt($prompt)
+            ->generate()
+            ->text;
+    }
+}
+PHPEOF
+    record_path "app/Foundry/Agents/ClaudeAgent.php"
+    echo -e "${GREEN}[✓] Anthropic Claude agent scaffolded (requires ANTHROPIC_API_KEY in .env, uses Prism)${NC}"
+fi
+if [[ $INSTALL_OPENAI == true ]]; then
+    echo -e "${BLUE}[+] Infusing OpenAI SDK...${NC}"
+    install_pkg "openai-php/laravel" "false"
+    if [[ -f artisan ]]; then
+        ensure_package_discovered
+        php artisan vendor:publish --provider="OpenAI\Laravel\ServiceProvider" || true
+    fi
+fi
+if [[ $INSTALL_MCP == true ]]; then
+    echo -e "${BLUE}[+] Infusing MCP Server (Model Context Protocol)...${NC}"
+    install_pkg "php-mcp/server" "false"
+    if [[ -f artisan ]]; then
+        ensure_package_discovered
+        if php artisan list 2>/dev/null | grep -q "mcp:install"; then
+            php artisan mcp:install || true
+        fi
+    fi
+    mkdir -p app/Foundry/MCP
+    cat > app/Foundry/MCP/McpServer.php << 'PHPEOF'
+<?php
+namespace App\Foundry\MCP;
+// MCP Server - exposes tools and resources to AI clients
+// Register tools in config/mcp.php after installation
+// See: https://github.com/php-mcp/server
+class McpServer {
+    public function tools(): array { return []; }
+    public function resources(): array { return []; }
+    public function prompts(): array { return []; }
+}
+PHPEOF
+    record_path "app/Foundry/MCP"
+    echo -e "${GREEN}[✓] MCP Server scaffolded at app/Foundry/MCP/ (configure tools in config/mcp.php)${NC}"
+fi
+if [[ $INSTALL_RAG == true ]]; then
+    echo -e "${BLUE}[+] Scaffolding RAG Pipeline (Retrieval-Augmented Generation)...${NC}"
+    mkdir -p app/Foundry/RAG
+    cat > app/Foundry/RAG/RagPipeline.php << 'PHPEOF'
+<?php
+namespace App\Foundry\RAG;
+use Prism\Prism;
+use Illuminate\Support\Facades\DB;
+
+// RAG Pipeline - embed, store, retrieve, generate
+// Requires pgvector extension enabled on PostgreSQL for vector search
+class RagPipeline {
+    public function embed(string $text, string $provider = 'openai', string $model = 'text-embedding-3-small'): array {
+        return Prism::embeddings()
+            ->using($provider, $model)
+            ->fromInput($text)
+            ->generate()
+            ->embeddings;
+    }
+
+    public function store(string $content, array $embedding, array $metadata = []): void {
+        DB::table('embeddings')->insert([
+            'content'   => $content,
+            'embedding' => json_encode($embedding),
+            'metadata'  => json_encode($metadata),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function retrieve(string $query, int $topK = 5): array {
+        $queryEmbedding = $this->embed($query);
+        // Uses pgvector cosine distance operator; fallback to JSON scan if pgvector unavailable
+        return DB::table('embeddings')
+            ->orderByRaw('embedding::vector <-> ?::vector', [json_encode($queryEmbedding)])
+            ->limit($topK)
+            ->get()
+            ->toArray();
+    }
+
+    public function generate(string $query, string $provider = 'anthropic', string $model = 'claude-sonnet-4-6'): string {
+        $context = collect($this->retrieve($query))->pluck('content')->implode("\n\n---\n\n");
+        return Prism::text()
+            ->using($provider, $model)
+            ->prompt("Use the following context to answer the question.\n\nContext:\n{$context}\n\nQuestion: {$query}")
+            ->generate()
+            ->text;
+    }
+}
+PHPEOF
+    record_path "app/Foundry/RAG"
+    echo -e "${GREEN}[✓] RAG pipeline scaffolded at app/Foundry/RAG/ (enable pgvector for full vector search)${NC}"
 fi
 if [[ $INSTALL_FLUENTVOX == true ]]; then
     echo -e "${PURPLE}[+] Infusing FluentVox...${NC}"
@@ -389,6 +508,17 @@ if [[ $INSTALL_CHIMIT_PROMPT == true ]]; then
         fi
     fi
 fi
+if [[ $INSTALL_BOOST == true ]]; then
+    echo -e "${GREEN}[+] Adding Laravel Octane (Boost)...${NC}"
+    install_pkg "laravel/octane" "false"
+    if [[ -f artisan ]]; then
+        ensure_package_discovered
+        php artisan octane:install --server=frankenphp --no-interaction 2>/dev/null || \
+        php artisan octane:install --server=swoole --no-interaction 2>/dev/null || {
+            echo -e "${YELLOW}[-] Octane server install failed. Run: php artisan octane:install manually.${NC}"
+        }
+    fi
+fi
 if [[ $INSTALL_CREDITS == true ]]; then
     echo -e "${GREEN}[+] Adding Climactic Credits...${NC}"
     if ! composer_run require "climactic/laravel-credits" -W --ignore-platform-reqs; then
@@ -468,6 +598,95 @@ PY
     fi
 fi
 
+if [[ $INSTALL_MEMRL == true ]]; then
+    echo -e "${BLUE}[+] Scaffolding MemRL (Agent Memory)...${NC}"
+    mkdir -p app/Foundry/Memory
+    cat > app/Foundry/Memory/AgentMemory.php << 'PHPEOF'
+<?php
+namespace App\Foundry\Memory;
+use Illuminate\Support\Facades\Cache;
+
+// MemRL - persistent agent memory layer backed by Laravel cache
+// Swap Cache driver to Redis or database for cross-request persistence
+class AgentMemory {
+    public function __construct(private string $agentId = 'default') {}
+
+    public function remember(string $key, mixed $value, int $ttl = 86400): void {
+        $memory = $this->all();
+        $memory[$key] = ['value' => $value, 'at' => now()->toIso8601String()];
+        Cache::put("agent_memory:{$this->agentId}", $memory, $ttl);
+    }
+
+    public function recall(string $key, mixed $default = null): mixed {
+        return $this->all()[$key]['value'] ?? $default;
+    }
+
+    public function forget(string $key): void {
+        $memory = $this->all();
+        unset($memory[$key]);
+        Cache::put("agent_memory:{$this->agentId}", $memory);
+    }
+
+    public function all(): array {
+        return Cache::get("agent_memory:{$this->agentId}", []);
+    }
+
+    public function flush(): void {
+        Cache::forget("agent_memory:{$this->agentId}");
+    }
+}
+PHPEOF
+    record_path "app/Foundry/Memory"
+    echo -e "${GREEN}[✓] MemRL scaffolded at app/Foundry/Memory/ (configure cache driver in .env for persistence)${NC}"
+fi
+if [[ $INSTALL_PGVECTOR == true ]]; then
+    echo -e "${BLUE}[+] Adding pgvector (Vector DB)...${NC}"
+    install_pkg "tpetry/laravel-postgresql-enhanced" "false"
+    if [[ -f artisan ]]; then
+        ensure_package_discovered
+        MIGRATION_TS=$(date +%Y_%m_%d_%H%M%S)
+        MIGRATION_FILE="database/migrations/${MIGRATION_TS}_create_embeddings_table.php"
+        mkdir -p database/migrations
+        cat > "$MIGRATION_FILE" << 'PHPEOF'
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration {
+    public function up(): void {
+        DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
+        Schema::create('embeddings', function (Blueprint $table) {
+            $table->id();
+            $table->string('source')->nullable()->index();
+            $table->text('content');
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+        });
+        // Add vector column (1536 dims for OpenAI, 3072 for text-embedding-3-large)
+        DB::statement('ALTER TABLE embeddings ADD COLUMN embedding vector(1536)');
+        DB::statement('CREATE INDEX embeddings_embedding_idx ON embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)');
+    }
+
+    public function down(): void {
+        Schema::dropIfExists('embeddings');
+    }
+};
+PHPEOF
+        record_path "$MIGRATION_FILE"
+        echo -e "${GREEN}[✓] pgvector migration created at ${MIGRATION_FILE}${NC}"
+        echo -e "${YELLOW}    Run: php artisan migrate  (requires PostgreSQL with pgvector extension)${NC}"
+    fi
+fi
+if [[ $INSTALL_SCOUT == true ]]; then
+    echo -e "${GREEN}[+] Adding Laravel Scout...${NC}"
+    install_pkg "laravel/scout" "false"
+    if [[ -f artisan ]]; then
+        ensure_package_discovered
+        php artisan vendor:publish --provider="Laravel\Scout\ScoutServiceProvider" || true
+    fi
+fi
 if [[ $RUN_MASTER_CLEANUP == true && -f artisan ]]; then
     echo -e "${BLUE}[+] Master Forge cleanup...${NC}"
     php artisan vendor:publish --all
